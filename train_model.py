@@ -10,7 +10,6 @@ import torch.nn as nn
 from dataset import Dataset
 import hicplus_model
 import multi_modal_model
-import pytorch_ssim
 
 use_gpu = True
 batch_size = 1
