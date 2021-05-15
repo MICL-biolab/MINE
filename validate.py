@@ -9,7 +9,7 @@ from skimage.metrics import structural_similarity
 from dataset import Dataset
 
 parser = argparse.ArgumentParser(description="Evaluation Script")
-parser.add_argument("--model", default="/together/micl/liminghong/hic_data/train/checkpoint_new/model_epoch_8.pth", type=str, help="model path")
+parser.add_argument("--model", default="/together/micl/liminghong/hic_data/train/checkpoint_new/model_epoch_10.pth", type=str, help="model path")
 parser.add_argument("--results", default="/together/micl/liminghong/hic_data/train/validation", type=str, help="Result save location")
 
 use_gpu = True
@@ -38,11 +38,13 @@ for iteration, batch in enumerate(data_loader, 1):
     data, target = Variable(batch[0]), Variable(batch[1])
     if use_gpu:
         data, target = data.cuda(), target.cuda()
-    output = model(data.unsqueeze(1))
+    output = model(data)
+    # output = model(data[:, 0].unsqueeze(1))
+    # output = model(data[:, 0].unsqueeze(1), data[:, 1].unsqueeze(1))
     output = output.detach().cpu().numpy()
 
     output = output[0, 0]
-    data = data.detach().cpu().numpy()[0]
+    data = data.detach().cpu().numpy()[0][0]
     target = target.detach().cpu().numpy()[0]
     ssim += structural_similarity(output, target)
     old_ssim += structural_similarity(data, target)

@@ -2,10 +2,8 @@ import os
 import sys
 import argparse
 from math import sqrt, ceil
-from PIL import Image
 import numpy as np
 from numpy.fft import fft2, ifft2, ifftshift
-from timeit import default_timer as timer
 
 
 def mkdir(out_dir):
@@ -88,7 +86,7 @@ def main(args):
     for _p in hic_file_path:
         print(_p)
         prefix, ext = os.path.splitext(os.path.basename(_p))
-        if prefix in ['chr1_1kb', 'chr2_1kb', 'chr3_1kb', 'chr4_1kb', 'chr5_1kb']:
+        if prefix in ['chr1_1Kb', 'chr2_1Kb', 'chr3_1Kb', 'chr4_1Kb', 'chr5_1Kb']:
             continue
         hic = np.load(_p)['hic']
         rows, cols = hic.shape
@@ -116,6 +114,7 @@ def main(args):
                 hr_hic[m, n] = high_matrix
                 replaced_hic[m, n] = replaced_matrix
 
+        prefix = prefix.lower()
         np.savez_compressed(os.path.join(hr_dir, prefix), hic=hr_hic)
         np.savez_compressed(os.path.join(replaced_dir, prefix), hic=replaced_hic)
 

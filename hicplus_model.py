@@ -15,12 +15,12 @@ conv2d3_filters_numbers = 1
 conv2d3_filters_size = 5
 
 class Net(nn.Module):
-    def __init__(self):
+    def __init__(self, channel):
         super(Net, self).__init__()
         # 1 input image channel, 6 output channels, 5x5 square convolution
         # kernel
         self.conv1 = nn.Conv2d(
-            in_channels=1, out_channels=conv2d1_filters_numbers,
+            in_channels=channel, out_channels=conv2d1_filters_numbers,
             kernel_size=conv2d1_filters_size, stride=1,
             padding=int((conv2d1_filters_size - 1) / 2))
         self.conv1_1 = nn.Conv2d(
@@ -44,6 +44,16 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.conv1_1(x)
         x = F.relu(x)
+        
+        x = self.conv1_1(x)
+        x = F.relu(x)
+        x = self.conv1_1(x)
+        x = F.relu(x)
+        x = self.conv1_1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+
         x = self.conv2(x)
         x = F.relu(x)
         x = self.conv3(x)
