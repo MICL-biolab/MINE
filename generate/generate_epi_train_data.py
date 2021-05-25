@@ -45,19 +45,20 @@ def main(args):
     if focus_size % subimage_size != 0:
         raise Exception()
 
-    file_names = ['chr{}_{}kb.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
+    # file_names = ['chr{}_{}kb.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
+    file_names = ['chr{}_{}b.npz'.format(i, resolution) for i in range(6, 23)]
 
     for file_name in file_names:
         file_path = os.path.join(in_dir, file_name)
         print(file_path)
 
-        peaks = np.load(file_path)
-        Min, Max = np.min(peaks), np.max(peaks)
-        peaks = (peaks - Min) / (Max - Min)
-        peaks = 1 - peaks
-        peaks = (peaks * 10000).astype(np.uint16)
+        epi_matrix = np.load(file_path)['epi']
+        # Min, Max = np.min(peaks), np.max(peaks)
+        # peaks = (peaks - Min) / (Max - Min)
+        # peaks = 1 - peaks
+        # peaks = (peaks * 10000).astype(np.uint16)
 
-        epi_matrix = point_add(peaks)
+        # epi_matrix = point_add(peaks)
         epi_matrix = divide(epi_matrix, focus_size, subimage_size)
         
         prefix, ext = os.path.splitext(file_name)
@@ -72,8 +73,8 @@ if __name__ == '__main__':
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
     misc_args.add_argument('-r', dest='resolution',
-                           help='resolution(kb)[default:1]',
-                           default=1)
+                           help='resolution(kb)[default:1000]',
+                           default=1000)
     misc_args.add_argument('-s', dest='subimage_size',
                            help='The size of the captured image[default:400]',
                            default=400)

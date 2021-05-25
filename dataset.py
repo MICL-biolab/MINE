@@ -33,7 +33,7 @@ def my_norm(matrix):
     return matrix
 
 class Dataset(data.Dataset):
-    def __init__(self, data_path, chromosomes, resolution):
+    def __init__(self, data_path, chromosomes, resolution, is_validate=False):
         super(Dataset, self).__init__()
 
         self.hr_dataset = None
@@ -42,11 +42,15 @@ class Dataset(data.Dataset):
             file_name = '{}_{}.npz'.format(chromosome, resolution)
             hr_file = os.path.join(data_path, 'hr', file_name)
             replaced_file = os.path.join(data_path, 'replaced', file_name)
-            epi_file = os.path.join(data_path, 'epi', file_name)
+            epi_file = os.path.join(data_path, 'epi_new', file_name)
 
             hr_matrix = np.load(hr_file)['hic'].astype(np.float32)
             replaced_matrix = np.load(replaced_file)['hic'].astype(np.float32)
             epi_matrix = np.load(epi_file)['epi'].astype(np.float32)
+            if not is_validate:
+                hr_matrix = hr_matrix[:, 0, np.newaxis]
+                replaced_matrix = replaced_matrix[:, 0, np.newaxis]
+                epi_matrix = epi_matrix[:, 0, np.newaxis]
 
             epi_matrix = my_norm(epi_matrix)
 
@@ -67,7 +71,7 @@ class Dataset(data.Dataset):
                 self.shape[0] * self.shape[1], 1, self.shape[2], self.shape[3]))
             epi_dataset = epi_matrix.reshape((
                 self.shape[0] * self.shape[1], 1, self.shape[2], self.shape[3]))
-            replaced_dataset = replaced_dataset * epi_dataset
+            # replaced_dataset = replaced_dataset * epi_dataset
 
             replaced_dataset = np.concatenate((replaced_dataset, epi_dataset), axis=1)
 

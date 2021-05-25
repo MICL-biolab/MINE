@@ -38,14 +38,15 @@ def fan_func(sparse_img, mask):
 
 def sparsify(img, mask, sparse_img, span):
     first_point = int(span/2)
-    mask[first_point::span, first_point::span] = 1
+    # mask[first_point::span, first_point::span] = 1
+    mask[:, :] = 1
     dim = img.shape
     h, w = dim[0], dim[1]
     for i in range(0, h, span):
         for j in range(0, w, span):
-            row = min(int(i + span/2), h - 1)
-            col = min(int(j + span/2), w - 1)
-            sparse_img[row, col] = img[i:i+span, j:j+span].mean()
+            # row = min(int(i + span/2), h - 1)
+            # col = min(int(j + span/2), w - 1)
+            sparse_img[i:i+span, j:j+span] = img[i:i+span, j:j+span].sum()
     return sparse_img, mask
 
 
