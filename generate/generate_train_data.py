@@ -46,14 +46,14 @@ def sparsify(img, mask, sparse_img, span):
         for j in range(0, w, span):
             # row = min(int(i + span/2), h - 1)
             # col = min(int(j + span/2), w - 1)
-            sparse_img[i:i+span, j:j+span] = img[i:i+span, j:j+span].sum()
+            sparse_img[i:i+span, j:j+span] += img[i:i+span, j:j+span].mean()
     return sparse_img, mask
 
 
 def create_low_matrix(high_matrix, spans=[5, 10]):
     h, w = high_matrix.shape
     mask = np.zeros((h, w))
-    sparse_matrix = np.zeros((h, w), dtype=np.uint8)
+    sparse_matrix = np.zeros((h, w))
 
     spans.sort(reverse=True)
     for span in spans:
@@ -68,6 +68,7 @@ def main(args):
     out_dir = args.output_folder
     subimage_size = args.subimage_size
     focus_size = args.focus_size
+    print(args)
     if focus_size % subimage_size != 0:
         raise Exception()
 
@@ -87,7 +88,7 @@ def main(args):
     for _p in hic_file_path:
         print(_p)
         prefix, ext = os.path.splitext(os.path.basename(_p))
-        if prefix in ['chr1_1Kb', 'chr2_1Kb', 'chr3_1Kb', 'chr4_1Kb', 'chr5_1Kb']:
+        if prefix in ['chr1_1000b', 'chr2_1000b', 'chr3_1000b', 'chr4_1000b', 'chr5_1000b']:
             continue
         hic = np.load(_p)['hic']
         rows, cols = hic.shape
@@ -127,10 +128,10 @@ if __name__ == '__main__':
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
-    misc_args.add_argument('-s', dest='subimage_size',
+    misc_args.add_argument('-s', dest='subimage_size', type=int,
                            help='The size of the captured image[default:400]',
                            default=400)
-    misc_args.add_argument('-f', dest='focus_size',
+    misc_args.add_argument('-f', dest='focus_size', type=int,
                            help='The size of the picture to follow[default:400]',
                            default=2000)
     

@@ -1,62 +1,120 @@
 import os
+import sys
+from math import ceil
+import argparse
 import numpy as np
 import numba as nb
-from scipy import stats
 
-in_dir = '/together/micl/liminghong/lab/epi'
-out_dir = '/together/micl/liminghong/lab/train/epi_new'
+max_limit = 10000
+nan_num = 32767
 
-ATAC_path = os.path.join(in_dir, 'ATAC')
-DNase_path = os.path.join(in_dir, 'DNase')
-Chip_H3K27ac_path = os.path.join(in_dir, 'Chip_H3K27ac')
-Chip_H3K27me3_path = os.path.join(in_dir, 'Chip_H3K27me3')
-Chip_H3K4me1_path = os.path.join(in_dir, 'Chip_H3K4me1')
-all_path = [
-    ATAC_path, DNase_path, Chip_H3K27ac_path, Chip_H3K27me3_path, Chip_H3K4me1_path
-]
 
-Max = 10000
-resolution = 1000
-# file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
-file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in range(13, 23)]
+def mkdir(out_dir):
+    if not os.path.isdir(out_dir):
+        print(f'Making directory: {out_dir}')
+    os.makedirs(out_dir, exist_ok=True)
+
 
 @nb.jit()
-def make_matrix(matrix, features):
+def make_matrix(matrix, features, focus_size):
     length = features.shape[0]
-    for i in range(length):
-        for j in range(i, length):
-            # matrix[i, j] = stats.spearmanr(
-            #     features[:, i].reshape(-1),
-            #     features[:, j].reshape(-1)
-            # )[0]
-
-            max_num = min(
-                features[i, :].max(), features[j, :].max()
-            )
-            if max_num == 0:
-                matrix[i, j] = matrix[j, i] = Max
-                continue
-            _pearson = np.corrcoef(
-                features[i, :], features[j, :]
-            )
-            matrix[i, j] = min(int(_pearson[0, 1] * Max), Max)
-            matrix[j, i] = min(int(_pearson[1, 0] * Max), Max)
-    return matrix
+    for _i in range(length):
+        for _j in range(_i, min(_i+focus_size, length)):
+            if features[_i, :].max() == 0:
+                matrix[_i, _j] = matrix[_j, _i] = np.mean(features[_j, :]) * max_limit
+            elif features[_j, :].max() == 0:
+                matrix[_i, _j] = matrix[_j, _i] = np.mean(features[_i, :]) * max_limit
+            else:
+                _pearson = np.corrcoef(features[_i, :], features[_j, :])
+                matrix[_i, _j] = nan_num if np.isnan(_pearson[0, 1]) else min(int((_pearson[0, 1] + 1) * max_limit/2), max_limit)
+                matrix[_j, _i] = nan_num if np.isnan(_pearson[1, 0]) else min(int((_pearson[1, 0] + 1) * max_limit/2), max_limit)
             
+            if matrix[_i, _j] > max_limit:
+                print(features[_i, :])
+                print(features[_j, :])
+    return matrix
 
-for file_name in file_names:
-    # 构造特征矩阵
-    epi_info = []
-    for dir_path in all_path:
-        file_path = os.path.join(dir_path, file_name)
-        _epi = np.load(file_path)
-        epi_info.append(_epi)
-    epi_info = np.array(epi_info)
-    epi_info = epi_info.T
-    print(epi_info.shape)
 
-    epi_matrix = np.zeros((epi_info.shape[0], epi_info.shape[0]), dtype=np.uint16)
-    epi_matrix = make_matrix(epi_matrix, epi_info)
+def divide(matrix, focus_size, subimage_size):
+    rows, cols = matrix.shape
+    sub_rows, sub_cols = ceil(rows / subimage_size), round(focus_size / subimage_size)
+    new_matrix = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size), dtype=np.uint16)
+    for m in range(sub_rows):
+        i = m * subimage_size
+        offset = m
+        for n in range(sub_cols):
+            j = (offset + n) * subimage_size
+            if j >= cols:
+                break
+            tmp_matrix = matrix[i:i+subimage_size, j:j+subimage_size]
+            # 补零
+            _y = i + subimage_size - rows if i + subimage_size > rows else 0
+            _x = j + subimage_size - cols if j + subimage_size > cols else 0
+            tmp_matrix = np.pad(tmp_matrix, ((0,_y),(0,_x)), 'constant', constant_values=(max_limit, max_limit))
 
-    prefix, ext = os.path.splitext(file_name)
-    np.savez_compressed(os.path.join(out_dir, prefix), epi=epi_matrix)
+            new_matrix[m, n] = tmp_matrix
+    return new_matrix
+
+
+def main(args):
+    in_dir = args.input_folder
+    out_dir = args.output_folder
+    resolution = args.resolution
+    subimage_size = args.subimage_size
+    focus_size = args.focus_size
+    print(args)
+    if focus_size % subimage_size != 0:
+        raise Exception()
+    mkdir(out_dir)
+
+    ATAC_path = os.path.join(in_dir, 'ATAC')
+    DNase_path = os.path.join(in_dir, 'DNase')
+    Chip_H3K27ac_path = os.path.join(in_dir, 'Chip_H3K27ac')
+    all_path = [ATAC_path, DNase_path, Chip_H3K27ac_path]
+
+    # file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
+    file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in range(6, 23)]
+
+    for file_name in file_names:
+        print(file_name)
+        # 构造特征矩阵
+        epi_info = []
+        for dir_path in all_path:
+            file_path = os.path.join(dir_path, file_name)
+            _epi = np.load(file_path)
+
+            Max, Min = _epi.max(), _epi.min()
+            _epi = (_epi - Min) / (Max - Min)
+
+            epi_info.append(_epi)
+        epi_info = np.array(epi_info)
+        epi_info = epi_info.T
+        print(epi_info.shape)
+
+        epi_matrix = np.zeros((epi_info.shape[0], epi_info.shape[0]), dtype=np.uint16)
+        epi_matrix = make_matrix(epi_matrix, epi_info, focus_size)
+        epi_matrix = divide(epi_matrix, focus_size, subimage_size)
+
+        prefix, ext = os.path.splitext(file_name)
+        np.savez_compressed(os.path.join(out_dir, prefix), epi=epi_matrix)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate epi train data')
+    req_args = parser.add_argument_group('Required Arguments')
+    req_args.add_argument('-i', dest='input_folder', help='', required=True)
+    req_args.add_argument('-o', dest='output_folder', help='', required=True)
+
+    misc_args = parser.add_argument_group('Miscellaneous Arguments')
+    misc_args.add_argument('-r', dest='resolution', type=int,
+                           help='resolution(b)[default:1000]',
+                           default=1000)
+    misc_args.add_argument('-s', dest='subimage_size', type=int,
+                           help='The size of the captured image[default:400]',
+                           default=400)
+    misc_args.add_argument('-f', dest='focus_size', type=int,
+                           help='The size of the picture to follow[default:400]',
+                           default=2000)
+    
+    args = parser.parse_args(sys.argv[1:])
+    main(args)

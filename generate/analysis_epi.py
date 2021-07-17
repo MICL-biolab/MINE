@@ -15,7 +15,7 @@ def mkdir(out_dir):
 def main(args):
     input_file = args.input_file
     output_folder = args.output_folder
-    step_length = args.bin_size
+    step_length = args.resolution
     mkdir(output_folder)
 
     bw = pyBigWig.open(input_file)
@@ -43,15 +43,15 @@ def main(args):
         np.save(os.path.join(output_folder, '{}_{}b'.format(chrom, step_length)), peaks)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate train data')
+    parser = argparse.ArgumentParser(description='Analysis epi data')
     req_args = parser.add_argument_group('Required Arguments')
     req_args.add_argument('-i', dest='input_file', help='', required=True)
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
-    misc_args.add_argument('-b', dest='bin_size',
-                           help='The size of a bin[default:1000]',
-                           default=1000, type=int)
+    misc_args.add_argument('-r', dest='resolution', type=int,
+                           help='resolution(b)[default:1000]',
+                           default=1000)
     
     args = parser.parse_args(sys.argv[1:])
     main(args)

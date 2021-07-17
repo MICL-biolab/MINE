@@ -10,9 +10,8 @@ def main(args):
     out_dir = args.output_folder
     resolution = args.resolution
 
-    file_names = ['chr{}_{}Kb.txt'.format(i, resolution) for i in range(5, 23)]
-
-    for file_name in file_names:
+    for index in range(5, 23):
+        file_name = 'chr{}_{}Kb.txt'.format(index, int(resolution/1000))
         file = open(os.path.join(in_dir, file_name), 'r')
         _list = file.readlines()
 
@@ -34,20 +33,19 @@ def main(args):
             z = 0 if math.isnan(z) else min(int(z), 65536)
             matrix[x, y] = matrix[y, x] = z
 
-        prefix, ext = os.path.splitext(file_name)
+        prefix = 'chr{}_{}b'.format(index, resolution)
         np.savez_compressed(os.path.join(out_dir, prefix), hic=matrix)
-        # np.savez_compressed(os.path.join(path, 'chr6_1Kb_cut'), hic=matrix[0:400, 0:400])
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate train data')
+    parser = argparse.ArgumentParser(description='Convert .txt format to .npy format')
     req_args = parser.add_argument_group('Required Arguments')
     req_args.add_argument('-i', dest='input_folder', help='', required=True)
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
-    misc_args.add_argument('-r', dest='resolution',
-                           help='resolution(kb)[default:1]',
-                           default=1)
+    misc_args.add_argument('-r', dest='resolution', type=int,
+                           help='resolution(b)[default:1000]',
+                           default=1000)
 
     args = parser.parse_args(sys.argv[1:])
     main(args)
