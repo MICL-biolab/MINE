@@ -11,12 +11,12 @@ from dataset import Dataset
 os.environ['CUDA_VISIBLE_DEVICES'] = '5, 6, 7'
 
 parser = argparse.ArgumentParser(description="Evaluation Script")
-parser.add_argument("--model", default="/data1/lmh_data/lab/train/checkpoint_new/model_epoch_1415.pth", type=str, help="model path")
+parser.add_argument("--train_folder", default="/data1/lmh_data/lab/train", type=str, help="The training data folder")
+parser.add_argument("--model", default="/data1/lmh_data/lab/train/checkpoint_new/model_epoch_155.pth", type=str, help="model path")
 parser.add_argument("--results", default="/data1/lmh_data/lab/train/validation", type=str, help="Result save location")
 
 use_gpu = True
 resolution = '1kb'
-data_path = '/data1/lmh_data/lab/train'
 validate_chromosomes = ['chr{}'.format(19)]
 
 opt = parser.parse_args()
@@ -29,7 +29,7 @@ if use_gpu:
     model.cuda()
 model.eval()
 
-train_set = Dataset(data_path, validate_chromosomes, resolution, is_validate=True)
+train_set = Dataset(opt.train_folder, validate_chromosomes, is_validate=True)
 data_loader = data.DataLoader(train_set, batch_size=1, shuffle=False)
 
 ssim, old_ssim = 0.0, 0.0

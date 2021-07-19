@@ -10,3 +10,4 @@
 5. 将多个epi数据进行结合，生成相关性矩阵: python epi_concat.py -i /folder/to/epis -o /folder/to/train/epi -r 1000 -s 400 -f 2000
 #### 数据训练
 1. 训练: python train_model.py -i /folder/to/train -o /folder/to/checkpoint
+2. 预测: python validate.py --train_folder /folder/to/train --model /path/to/model --results /folder/to/result

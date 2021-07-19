@@ -61,9 +61,12 @@ class Dataset(data.Dataset):
             epi_matrix = epi_matrix / epi_matrix.max() * max_num
 
             if not is_validate:
-                hr_matrix = hr_matrix[:, 0, np.newaxis]
-                replaced_matrix = replaced_matrix[:, 0, np.newaxis]
-                epi_matrix = epi_matrix[:, 0, np.newaxis]
+                # hr_matrix = hr_matrix[:, 0, np.newaxis]
+                # replaced_matrix = replaced_matrix[:, 0, np.newaxis]
+                # epi_matrix = epi_matrix[:, 0, np.newaxis]
+                hr_matrix = hr_matrix[:, 0:2]
+                replaced_matrix = replaced_matrix[:, 0:2]
+                epi_matrix = epi_matrix[:, 0:2]
             
             self.shape = hr_matrix.shape
 
