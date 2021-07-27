@@ -13,10 +13,12 @@ kiwisolver==1.3.1
 llvmlite==0.36.0
 matplotlib==3.3.4
 networkx==2.5.1
+nose==1.3.7
 numba==0.53.1
 numba-scipy==0.3.0
 numpy==1.19.5
 Pillow==8.3.1
+portalocker==2.3.0
 pyBigWig==0.3.18
 pyparsing==2.4.7
 python-dateutil==2.8.2
@@ -33,6 +35,7 @@ Torchelie @ git+https://github.com/vermeille/Torchelie@780e1106d42a91ba8b1bf9416
 torchfile==0.1.0
 torchvision==0.8.2+cu101
 tornado==6.1
+tqdm==4.61.2
 typing-extensions==3.10.0.0
 urllib3==1.26.6
 visdom==0.1.8.9
