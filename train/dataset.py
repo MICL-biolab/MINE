@@ -79,9 +79,9 @@ class Dataset(data.Dataset):
             hr_matrix = hic_norm(hr_matrix)
             replaced_matrix = hic_norm(replaced_matrix)
             
-            np.save('input_show/hr_input', hr_matrix)
-            np.save('input_show/replaced_input', replaced_matrix)
-            np.save('input_show/epi_input', epi_matrix)
+            # np.save('input_show/hr_input', hr_matrix)
+            # np.save('input_show/replaced_input', replaced_matrix)
+            # np.save('input_show/epi_input', epi_matrix)
 
             hr_dataset = hr_matrix.reshape((
                 self.shape[0] * self.shape[1], self.shape[2], self.shape[3]))
