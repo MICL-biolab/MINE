@@ -67,10 +67,11 @@ def main(args):
         raise Exception()
     mkdir(out_dir)
 
-    ATAC_path = os.path.join(in_dir, 'ATAC')
-    DNase_path = os.path.join(in_dir, 'DNase')
-    Chip_H3K27ac_path = os.path.join(in_dir, 'Chip_H3K27ac')
-    all_path = [ATAC_path, DNase_path, Chip_H3K27ac_path]
+    all_path = []
+    for (_, dirnames, _) in os.walk(in_dir):
+        for dirname in dirnames:
+            all_path.append(os.path.join(in_dir, dirname))
+        break
 
     # file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
     file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in range(6, 23)]
