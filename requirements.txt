@@ -31,7 +31,7 @@ six==1.16.0
 tifffile==2020.9.3
 torch==1.7.1+cu101
 torchaudio==0.7.2
-Torchelie @ git+https://github.com/vermeille/Torchelie@780e1106d42a91ba8b1bf941653e6dc94dfa6635
+-e git://github.com/vermeille/Torchelie.git@780e1106d42a91ba8b1bf941653e6dc94dfa6635#egg=Torchelie
 torchfile==0.1.0
 torchvision==0.8.2+cu101
 tornado==6.1

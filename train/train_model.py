@@ -1,9 +1,7 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '2, 3, 4'
 import sys
 import argparse
 import numpy as np
-from torch.utils import data
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -35,12 +33,7 @@ def get_logger(filename, verbosity=1, name=None):
 use_gpu = True
 batch_size = 4
 lr = 0.0001
-
-# resolution = '1kb'
-# data_path = '/data1/lmh_data/lab/train'
 train_chromosomes = ['chr{}'.format(i) for i in range(13, 20)]
-# test_chromosomes = ['chr{}'.format(i) for i in range(19, 20)]
-# out_dir_path = '/data1/lmh_data/lab/train/checkpoint_new'
 
 
 def mkdir(out_dir):
@@ -119,7 +112,6 @@ def train(args):
         print(output_max)
         # 测试
         test_loss, accuracy = 0.0, 0.0
-        length = len(test_data_loader)
         _i, _j = 0, 0
         # target_data, output_data = np.zeros(test_set.shape), np.zeros(test_set.shape)
         Net.eval()
