@@ -7,20 +7,27 @@ import torch.utils.data as data
 from skimage.measure import compare_ssim, compare_psnr
 from skimage.metrics import structural_similarity
 from dataset import Dataset
+import my_net as UNet
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '5, 6, 7'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 parser = argparse.ArgumentParser(description="Evaluation Script")
-parser.add_argument("--train_folder", default="/data1/lmh_data/lab/train", type=str, help="The training data folder")
-parser.add_argument("--model", default="/data1/lmh_data/lab/train/checkpoint_new/model_epoch_155.pth", type=str, help="model path")
-parser.add_argument("--results", default="/data1/lmh_data/lab/train/validation", type=str, help="Result save location")
+parser.add_argument("--train_folder", default="/data1/lmh_data/MMSR_complete/train",
+                    type=str, help="The training data folder")
+parser.add_argument(
+    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint_test/model_epoch_71.pth", type=str, help="model path")
+parser.add_argument("--results", default="/data1/lmh_data/MMSR_complete/validation",
+                    type=str, help="Result save location")
 
 use_gpu = True
 resolution = '1kb'
 validate_chromosomes = ['chr{}'.format(19)]
 
 opt = parser.parse_args()
-model = torch.load(opt.model, map_location=lambda storage, loc: storage)["model"]
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# checkpoint = torch.load(opt.model, map_location=lambda storage, loc: storage)
+model = torch.nn.DataParallel(UNet.Unet(1, 1))
+model.load_state_dict(torch.load(opt.model, map_location=str(device)))
 
 if not os.path.exists(opt.results):
     os.makedirs(opt.results)
@@ -37,7 +44,8 @@ print("===> Validation")
 _i, _j = 0, 0
 output_data = np.zeros(train_set.shape)
 for iteration, batch in enumerate(data_loader, 1):
-    replaced, epi, target = Variable(batch[0]), Variable(batch[1]), Variable(batch[2])
+    replaced, epi, target = Variable(
+        batch[0]), Variable(batch[1]), Variable(batch[2])
     if use_gpu:
         replaced, epi, target = replaced.cuda(), epi.cuda(), target.cuda()
     output = model(replaced.unsqueeze(1), epi.unsqueeze(1))
@@ -59,7 +67,8 @@ for iteration, batch in enumerate(data_loader, 1):
         print('ssim: {}'.format(ssim / iteration))
         print('old_ssim: {}'.format(old_ssim / iteration))
 
-np.savez_compressed('{}/{}_{}.npz'.format(opt.results, validate_chromosomes[0], resolution), out=output_data)
+np.savez_compressed('{}/{}_{}.npz'.format(opt.results,
+                                          validate_chromosomes[0], resolution), out=output_data)
 
 
 def test():

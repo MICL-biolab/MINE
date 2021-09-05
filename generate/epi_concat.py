@@ -20,14 +20,13 @@ def make_matrix(matrix, features, focus_size):
     length = features.shape[0]
     for _i in range(length):
         for _j in range(_i, min(_i+focus_size, length)):
-            if features[_i, :].max() == 0:
-                matrix[_i, _j] = matrix[_j, _i] = np.mean(features[_j, :]) * max_limit
-            elif features[_j, :].max() == 0:
-                matrix[_i, _j] = matrix[_j, _i] = np.mean(features[_i, :]) * max_limit
+            _num = max_limit * np.mean(np.append(features[_i, :], features[_j, :]))
+            if features[_i, :].max() == 0 or features[_j, :].max() == 0:
+                matrix[_i, _j] = matrix[_j, _i] = _num
             else:
                 _pearson = np.corrcoef(features[_i, :], features[_j, :])
-                matrix[_i, _j] = nan_num if np.isnan(_pearson[0, 1]) else min(int((_pearson[0, 1] + 1) * max_limit/2), max_limit)
-                matrix[_j, _i] = nan_num if np.isnan(_pearson[1, 0]) else min(int((_pearson[1, 0] + 1) * max_limit/2), max_limit)
+                matrix[_i, _j] = nan_num if np.isnan(_pearson[0, 1]) else int(_pearson[0, 1] * _num)
+                matrix[_j, _i] = nan_num if np.isnan(_pearson[1, 0]) else int(_pearson[0, 1] * _num)
             
             if matrix[_i, _j] > max_limit:
                 print(features[_i, :])
@@ -38,7 +37,7 @@ def make_matrix(matrix, features, focus_size):
 def divide(matrix, focus_size, subimage_size):
     rows, cols = matrix.shape
     sub_rows, sub_cols = ceil(rows / subimage_size), round(focus_size / subimage_size)
-    new_matrix = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size), dtype=np.uint16)
+    new_matrix = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size), dtype=np.int32)
     for m in range(sub_rows):
         i = m * subimage_size
         offset = m
@@ -92,7 +91,7 @@ def main(args):
         epi_info = epi_info.T
         print(epi_info.shape)
 
-        epi_matrix = np.zeros((epi_info.shape[0], epi_info.shape[0]), dtype=np.uint16)
+        epi_matrix = np.zeros((epi_info.shape[0], epi_info.shape[0]), dtype=np.int32)
         epi_matrix = make_matrix(epi_matrix, epi_info, focus_size)
         epi_matrix = divide(epi_matrix, focus_size, subimage_size)
 

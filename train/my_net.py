@@ -2,21 +2,24 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-#把常用的2个卷积操作简单封装下
+# 把常用的2个卷积操作简单封装下
 class DoubleConv(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, padding_size=1):
         super(DoubleConv, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size, padding=padding_size),
-            nn.BatchNorm2d(out_ch), #添加了BN层
+            nn.BatchNorm2d(out_ch),  # 添加了BN层
+            # nn.InstanceNorm2d(out_ch, affine=True),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_ch, out_ch, kernel_size, padding=padding_size),
             nn.BatchNorm2d(out_ch),
+            # nn.InstanceNorm2d(out_ch, affine=True),
             nn.ReLU(inplace=True)
         )
 
     def forward(self, input):
         return self.conv(input)
+
 
 class Unet(nn.Module):
     def __init__(self, in_ch, out_ch, multiple=2):
@@ -62,10 +65,8 @@ class Unet(nn.Module):
         c10 = self.conv10(c9)
         
         out = nn.ReLU()(c10)
-        # out = nn.Sigmoid()(c10)
-        # out = c10
         return out
-    
+
     def initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
