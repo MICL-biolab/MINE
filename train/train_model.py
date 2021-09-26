@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import logging
 import torch
+from torch import tensor
 import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn as nn
@@ -107,31 +108,41 @@ def train(args):
             data_loader.sampler.set_epoch(epoch)
             test_data_loader.sampler.set_epoch(epoch)
         for iteration, batch in enumerate(data_loader, 1):
-            replaced = Variable(batch[0]).to(device)
-            epi = Variable(batch[1]).to(device)
-            target = Variable(batch[2]).to(device)
+            replaced = Variable(batch[0]).to(device).unsqueeze(1)
+            epi = Variable(batch[1]).to(device).unsqueeze(1)
+            annotation = Variable(batch[2]).to(device).unsqueeze(1)
+            target = Variable(batch[3]).to(device).unsqueeze(1)
 
             optimizer.zero_grad()
+            annotation_is_0, annotation_is_not_0 = annotation==0, annotation!=0
             with torch.cuda.amp.autocast():
-                output = Net(replaced.unsqueeze(1), epi.unsqueeze(1))
+                output = Net(replaced, epi)
                 output_max = max(output_max, output.max().item())
 
-                # loss1 = L1_loss(output[target.unsqueeze(1) > 0], target.unsqueeze(1)[
-                                # target.unsqueeze(1) > 0])
-                loss2 = perceptual_loss(output, target.unsqueeze(1))
+                loss1 = L1_loss(output[annotation_is_not_0], target[annotation_is_not_0])
+                _output, _target = output.clone().detach(), target.clone().detach()
+                _output[annotation_is_0] = 0
+                _target[annotation_is_0] = 0
+                for i in range(_output.shape[0]):
+                    for j in range(_output.shape[1]):
+                        _output[i, j, _output[i, j].sum(axis=1)!=0, :]
+                        _target[i, j, _target[i, j].sum(axis=1)!=0, :]
+                        _output[i, j, :, _output[i, j].sum(axis=0)!=0]
+                        _target[i, j, :, _target[i, j].sum(axis=0)!=0]
+                loss2 = perceptual_loss(_output, _target)
 
-            # scaler.scale(loss1).backward(retain_graph=True)
+            scaler.scale(loss1).backward(retain_graph=True)
             scaler.scale(loss2).backward()
 
             scaler.step(optimizer)
             scaler.update()
 
             dist.barrier()
-            # loss1 = reduce_tensor(loss1.clone())
+            loss1 = reduce_tensor(loss1.clone())
             loss2 = reduce_tensor(loss2.clone())
 
-            # running_loss += loss1.item() + loss2.item()
-            running_loss += loss2.item()
+            running_loss += loss1.item() + loss2.item()
+            # running_loss += loss2.item()
             if iteration % 10 == 0 and local_rank == 0:
                 # print(str(loss1) + " " + str(loss2))
                 log_str = "===> Epoch[{}]({}/{}): Loss: {:.10f}".format(
@@ -142,46 +153,39 @@ def train(args):
         if local_rank == 0:
             logger.info(str(output_max))
         # 测试
-        test_loss, accuracy = 0.0, 0.0
-        # target_data, output_data = np.zeros(test_set.shape), np.zeros(test_set.shape)
+        test_loss = 0.0
         Net.eval()
         for iteration, batch in enumerate(test_data_loader, 1):
-            replaced = Variable(batch[0]).to(device)
-            epi = Variable(batch[1]).to(device)
-            target = Variable(batch[2]).to(device)
+            replaced = Variable(batch[0]).to(device).unsqueeze(1)
+            epi = Variable(batch[1]).to(device).unsqueeze(1)
+            annotation = Variable(batch[2]).to(device).unsqueeze(1)
+            target = Variable(batch[3]).to(device).unsqueeze(1)
             
+            annotation_is_0, annotation_is_not_0 = annotation==0, annotation!=0
             with torch.cuda.amp.autocast():
-                output = Net(replaced.unsqueeze(1), epi.unsqueeze(1))
+                output = Net(replaced, epi)
 
-                # loss1 = L1_loss(output[target.unsqueeze(1) > 0], target.unsqueeze(1)[
-                #                 target.unsqueeze(1) > 0])
-                loss2 = perceptual_loss(output, target.unsqueeze(1))
+                loss1 = L1_loss(output[annotation_is_not_0], target[annotation_is_not_0])
+                _output, _target = output.clone().detach(), target.clone().detach()
+                _output[annotation_is_0] = 0
+                _target[annotation_is_0] = 0
+                for i in range(_output.shape[0]):
+                    for j in range(_output.shape[1]):
+                        _output[i, j, _output[i, j].sum(axis=1)!=0, :]
+                        _target[i, j, _target[i, j].sum(axis=1)!=0, :]
+                        _output[i, j, :, _output[i, j].sum(axis=0)!=0]
+                        _target[i, j, :, _target[i, j].sum(axis=0)!=0]
+                loss2 = perceptual_loss(_output, _target)
 
             dist.barrier()
-            # loss1 = reduce_tensor(loss1.clone())
+            loss1 = reduce_tensor(loss1.clone())
             loss2 = reduce_tensor(loss2.clone())
 
-            # if torch.isnan(loss1):
-            #     test_loss += loss2.item()
-            # else:
-            #     test_loss += loss1.item() + loss2.item()
-            test_loss += loss2.item()
-
-            outputs = output.detach().cpu().numpy()
-            targets = target.detach().cpu().numpy()
-            dim = outputs.shape
-            _accuracy = 0.0
-            for i in range(dim[0]):
-                _a = scipy.stats.spearmanr(
-                    outputs[i, 0].reshape(-1), targets[i].reshape(-1))[0]
-                _accuracy += 1 if np.isnan(_a) else _a
-            accuracy += _accuracy / dim[0]
+            test_loss += loss1.item() + loss2.item()
 
         if local_rank == 0:
-            accuracy /= len(test_data_loader)
-
-            log_str = "===> Epoch[{}]:\ttrain_loss: {:.10f}\ttest_loss: {:.10f}\taccuracy: {:.10f}".format(
-                epoch, running_loss/len(data_loader), test_loss / len(test_data_loader), accuracy)
+            log_str = "===> Epoch[{}]:\ttrain_loss: {:.10f}\ttest_loss: {:.10f}".format(
+                epoch, running_loss/len(data_loader), test_loss / len(test_data_loader))
             logger.info(log_str)
 
             save_checkpoint(Net, epoch, out_dir_path)

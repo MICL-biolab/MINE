@@ -4,10 +4,53 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 import torch.utils.data as data
-from skimage.measure import compare_ssim, compare_psnr
-from skimage.metrics import structural_similarity
-from dataset import Dataset
+from dataset import get_matrix, hic_norm
 import my_net as UNet
+
+class Dataset(data.Dataset):
+    def __init__(self, data_path, chromosomes):
+        super(Dataset, self).__init__()
+
+        self.train_datasets = []
+        for chromosome in chromosomes:
+            replaced_matrix = get_matrix(
+                data_path, 'replaced', chromosome, 'hic')
+            epi_matrix = get_matrix(data_path, 'epi', chromosome, 'epi')
+            train_matrixs = [replaced_matrix, epi_matrix]
+
+            self.shape = train_matrixs[0].shape
+            for i in range(1, len(train_matrixs)):
+                _y = max(self.shape[0] - train_matrixs[i].shape[0], 0)
+                _x = max(self.shape[1] - train_matrixs[i].shape[1], 0)
+                train_matrixs[i] = np.pad(
+                    train_matrixs[i],
+                    ((0, _y), (0, _x), (0, 0), (0, 0)),
+                    'constant', constant_values=(0, 0)
+                )
+                train_matrixs[i] = train_matrixs[i][:self.shape[0], :self.shape[1]]
+
+            for i in range(len(train_matrixs)):
+                train_matrixs[i] = hic_norm(train_matrixs[i])
+                train_matrixs[i] = train_matrixs[i].reshape((
+                    self.shape[0] * self.shape[1], self.shape[2], self.shape[3]))
+
+            train_datasets = train_matrixs
+            if not self.train_datasets:
+                self.train_datasets = train_datasets
+            else:
+                for i in range(len(train_datasets)):
+                    self.train_datasets[i] = np.concatenate((self.train_datasets[i], train_datasets[i]))
+
+        for i in range(len(self.train_datasets)):
+            self.train_datasets[i] = torch.tensor(self.train_datasets[i])
+
+    def __getitem__(self, index):
+        replaced_tensor = torch.as_tensor(self.train_datasets[0][index])
+        epi_tensor = torch.as_tensor(self.train_datasets[1][index])
+        return replaced_tensor, epi_tensor
+
+    def __len__(self):
+        return self.train_datasets[0].shape[0]
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
@@ -15,69 +58,43 @@ parser = argparse.ArgumentParser(description="Evaluation Script")
 parser.add_argument("--train_folder", default="/data1/lmh_data/MMSR_complete/train",
                     type=str, help="The training data folder")
 parser.add_argument(
-    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint_test/model_epoch_71.pth", type=str, help="model path")
+    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_364.pth", type=str, help="model path")
 parser.add_argument("--results", default="/data1/lmh_data/MMSR_complete/validation",
                     type=str, help="Result save location")
 
-use_gpu = True
-resolution = '1kb'
 validate_chromosomes = ['chr{}'.format(19)]
 
 opt = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# checkpoint = torch.load(opt.model, map_location=lambda storage, loc: storage)
 model = torch.nn.DataParallel(UNet.Unet(1, 1))
 model.load_state_dict(torch.load(opt.model, map_location=str(device)))
 
 if not os.path.exists(opt.results):
     os.makedirs(opt.results)
 
-if use_gpu:
-    model.cuda()
+model.cuda()
 model.eval()
 
-train_set = Dataset(opt.train_folder, validate_chromosomes, is_validate=True)
+train_set = Dataset(opt.train_folder, validate_chromosomes)
 data_loader = data.DataLoader(train_set, batch_size=1, shuffle=False)
 
-ssim, old_ssim = 0.0, 0.0
 print("===> Validation")
 _i, _j = 0, 0
 output_data = np.zeros(train_set.shape)
 for iteration, batch in enumerate(data_loader, 1):
-    replaced, epi, target = Variable(
-        batch[0]), Variable(batch[1]), Variable(batch[2])
-    if use_gpu:
-        replaced, epi, target = replaced.cuda(), epi.cuda(), target.cuda()
+    replaced, epi = Variable(batch[0]), Variable(batch[1])
+
+    replaced, epi = replaced.cuda(), epi.cuda()
     output = model(replaced.unsqueeze(1), epi.unsqueeze(1))
     print(output.max().item())
     output = output.detach().cpu().numpy()
 
     output = output[0, 0]
-    replaced = replaced.detach().cpu().numpy()[0]
-    target = target.detach().cpu().numpy()[0]
-    ssim += structural_similarity(output, target)
-    old_ssim += structural_similarity(replaced, target)
-
     output_data[_i, _j] = output
     _j += 1
     if _j >= train_set.shape[1]:
         _j = 0
         _i += 1
-    if iteration % 100 == 0:
-        print('ssim: {}'.format(ssim / iteration))
-        print('old_ssim: {}'.format(old_ssim / iteration))
 
-np.savez_compressed('{}/{}_{}.npz'.format(opt.results,
-                                          validate_chromosomes[0], resolution), out=output_data)
+np.savez_compressed('{}/{}_1000b.npz'.format(opt.results, validate_chromosomes[0]), out=output_data)
 
-
-def test():
-    import numpy as np
-    import scipy.stats
-    hr = np.load('hr/chr19_1kb.npz')['hic']
-    replaced = np.load('replaced/chr19_1kb.npz')['hic']
-    out = np.load('validation/chr19_1kb.npz')['out']
-    hr_matrix = np.hstack(np.hstack(hr))
-    replaced_matrix = np.hstack(np.hstack(replaced))
-    out_matrix = np.hstack(np.hstack(out.astype(np.uint16)))
-    scipy.stats.spearmanr(hr_matrix.reshape(-1), out_matrix.reshape(-1))
