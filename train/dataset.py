@@ -67,7 +67,10 @@ class Dataset(data.Dataset):
                     # 如果子矩阵全为0
                     if (not np.any(old_train_matrixs[0][i, j])) or (old_train_matrixs[3][i, j]==0).all():
                         continue
-                    if (old_train_matrixs[0][i, j][old_train_matrixs[3][i, j]!=0]==0).all():
+                    tmp_matrix = old_train_matrixs[0][i, j][old_train_matrixs[3][i, j]!=0]
+                    if (tmp_matrix==0).all():
+                        continue
+                    if (np.count_nonzero(tmp_matrix) / tmp_matrix.size) < 0.1:
                         continue
                     for k in range(len(train_matrixs)):
                         train_matrixs[k].append(old_train_matrixs[k][i, j])

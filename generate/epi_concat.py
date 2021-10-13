@@ -73,7 +73,7 @@ def main(args):
         break
 
     # file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in list(range(5, 23)) + ['X', 'Y']]
-    file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in range(6, 23)]
+    file_names = ['chr{}_{}b.npy'.format(i, resolution) for i in range(1, 23)]
 
     for file_name in file_names:
         print(file_name)

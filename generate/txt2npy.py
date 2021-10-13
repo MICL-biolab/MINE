@@ -10,8 +10,8 @@ def main(args):
     out_dir = args.output_folder
     resolution = args.resolution
 
-    for index in range(5, 23):
-        file_name = 'chr{}_{}Kb.txt'.format(index, int(resolution/1000))
+    for index in range(1, 23):
+        file_name = 'chr{}_{}b.txt'.format(index, resolution)
         file = open(os.path.join(in_dir, file_name), 'r')
         _list = file.readlines()
 

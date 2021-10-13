@@ -44,7 +44,7 @@ def get_logger(filename, verbosity=1, name=None):
 batch_size = 8
 lr = 0.0001
 
-train_chromosomes = ['chr{}'.format(i) for i in range(6, 18)]
+train_chromosomes = ['chr{}'.format(i) for i in range(1, 18)]
 test_chromosomes = ['chr{}'.format(i) for i in range(18, 23)]
 
 
@@ -123,12 +123,6 @@ def train(args):
                 _output, _target = output.clone().detach(), target.clone().detach()
                 _output[annotation_is_0] = 0
                 _target[annotation_is_0] = 0
-                for i in range(_output.shape[0]):
-                    for j in range(_output.shape[1]):
-                        _output[i, j, _output[i, j].sum(axis=1)!=0, :]
-                        _target[i, j, _target[i, j].sum(axis=1)!=0, :]
-                        _output[i, j, :, _output[i, j].sum(axis=0)!=0]
-                        _target[i, j, :, _target[i, j].sum(axis=0)!=0]
                 loss2 = perceptual_loss(_output, _target)
 
             scaler.scale(loss1).backward(retain_graph=True)
@@ -169,12 +163,6 @@ def train(args):
                 _output, _target = output.clone().detach(), target.clone().detach()
                 _output[annotation_is_0] = 0
                 _target[annotation_is_0] = 0
-                for i in range(_output.shape[0]):
-                    for j in range(_output.shape[1]):
-                        _output[i, j, _output[i, j].sum(axis=1)!=0, :]
-                        _target[i, j, _target[i, j].sum(axis=1)!=0, :]
-                        _output[i, j, :, _output[i, j].sum(axis=0)!=0]
-                        _target[i, j, :, _target[i, j].sum(axis=0)!=0]
                 loss2 = perceptual_loss(_output, _target)
 
             dist.barrier()

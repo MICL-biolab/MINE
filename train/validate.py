@@ -58,7 +58,7 @@ parser = argparse.ArgumentParser(description="Evaluation Script")
 parser.add_argument("--train_folder", default="/data1/lmh_data/MMSR_complete/train",
                     type=str, help="The training data folder")
 parser.add_argument(
-    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_364.pth", type=str, help="model path")
+    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_117.pth", type=str, help="model path")
 parser.add_argument("--results", default="/data1/lmh_data/MMSR_complete/validation",
                     type=str, help="Result save location")
 

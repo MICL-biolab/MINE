@@ -88,8 +88,6 @@ def main(args):
     for _p in hic_file_path:
         print(_p)
         prefix, ext = os.path.splitext(os.path.basename(_p))
-        if prefix in ['chr1_1000b', 'chr2_1000b', 'chr3_1000b', 'chr4_1000b', 'chr5_1000b']:
-            continue
         hic = np.load(_p)['hic']
         rows, cols = hic.shape
         
