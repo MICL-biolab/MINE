@@ -6,7 +6,7 @@ import numpy as np
 import numba as nb
 
 max_limit = 10000
-nan_num = 32767
+nan_num = 0
 
 
 def mkdir(out_dir):
@@ -21,12 +21,9 @@ def make_matrix(matrix, features, focus_size):
     for _i in range(length):
         for _j in range(_i, min(_i+focus_size, length)):
             _num = max_limit * np.mean(np.append(features[_i, :], features[_j, :]))
-            if features[_i, :].max() == 0 or features[_j, :].max() == 0:
-                matrix[_i, _j] = matrix[_j, _i] = _num
-            else:
-                _pearson = np.corrcoef(features[_i, :], features[_j, :])
-                matrix[_i, _j] = nan_num if np.isnan(_pearson[0, 1]) else int(_pearson[0, 1] * _num)
-                matrix[_j, _i] = nan_num if np.isnan(_pearson[1, 0]) else int(_pearson[0, 1] * _num)
+            _pearson = np.corrcoef(features[_i, :], features[_j, :])
+            matrix[_i, _j] = nan_num if np.isnan(_pearson[0, 1]) else int(_pearson[0, 1] * _num)
+            matrix[_j, _i] = nan_num if np.isnan(_pearson[1, 0]) else int(_pearson[0, 1] * _num)
             
             if matrix[_i, _j] > max_limit:
                 print(features[_i, :])

@@ -1,7 +1,7 @@
 import os
 import sys
 import argparse
-from math import sqrt, ceil
+from math import sqrt, ceil, log10
 import numpy as np
 from numpy.fft import fft2, ifft2, ifftshift
 
@@ -36,28 +36,28 @@ def fan_func(sparse_img, mask):
     return img
 
 
-def sparsify(img, mask, sparse_img, span):
-    first_point = int(span/2)
-    # mask[first_point::span, first_point::span] = 1
+def sparsify(img, mask, sparse_img, span, col_num):
     mask[:, :] = 1
     dim = img.shape
     h, w = dim[0], dim[1]
     for i in range(0, h, span):
         for j in range(0, w, span):
-            # row = min(int(i + span/2), h - 1)
-            # col = min(int(j + span/2), w - 1)
-            sparse_img[i:i+span, j:j+span] += img[i:i+span, j:j+span].mean()
+            tmp = img[i:i+span, j:j+span].mean()
+            _x, _y = i + span / 2, j + col_num*w + span / 2
+            _length = max(abs(_x - _y), 1)
+            tmp *= max(log10(_length), 1)
+            sparse_img[i:i+span, j:j+span] += tmp
     return sparse_img, mask
 
 
-def create_low_matrix(high_matrix, spans=[5, 10]):
+def create_low_matrix(high_matrix, col_num, spans=[5, 10]):
     h, w = high_matrix.shape
     mask = np.zeros((h, w))
     sparse_matrix = np.zeros((h, w))
 
     spans.sort(reverse=True)
     for span in spans:
-        sparse_matrix, mask = sparsify(high_matrix, mask, sparse_matrix, span)
+        sparse_matrix, mask = sparsify(high_matrix, mask, sparse_matrix, span, col_num)
     replaced_matrix = fan_func(sparse_matrix, mask)
 
     return replaced_matrix
@@ -92,8 +92,8 @@ def main(args):
         rows, cols = hic.shape
         
         sub_rows, sub_cols = ceil(rows / subimage_size), round(focus_size / subimage_size)
-        hr_hic = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size), dtype=np.uint16)
-        replaced_hic = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size), dtype=np.uint16)
+        hr_hic = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size))
+        replaced_hic = np.zeros((sub_rows, sub_cols, subimage_size, subimage_size))
         for m in range(sub_rows):
             i = m * subimage_size
             # offset = max(round(m - focus_size / subimage_size + 1), 0)
@@ -109,7 +109,7 @@ def main(args):
                 _x = j + subimage_size - cols if j + subimage_size > cols else 0
                 high_matrix = np.pad(high_matrix, ((0,_y),(0,_x)), 'constant', constant_values=(0, 0))
 
-                replaced_matrix = create_low_matrix(high_matrix, spans=[5, 10])
+                replaced_matrix = create_low_matrix(high_matrix, j, spans=[5, 10])
 
                 hr_hic[m, n] = high_matrix
                 replaced_hic[m, n] = replaced_matrix

@@ -58,11 +58,11 @@ parser = argparse.ArgumentParser(description="Evaluation Script")
 parser.add_argument("--train_folder", default="/data1/lmh_data/MMSR_complete/train",
                     type=str, help="The training data folder")
 parser.add_argument(
-    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_117.pth", type=str, help="model path")
+    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_27.pth", type=str, help="model path")
 parser.add_argument("--results", default="/data1/lmh_data/MMSR_complete/validation",
                     type=str, help="Result save location")
 
-validate_chromosomes = ['chr{}'.format(19)]
+validate_chromosomes = ['chr{}'.format(i) for i in range(1, 23)]
 
 opt = parser.parse_args()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -75,26 +75,26 @@ if not os.path.exists(opt.results):
 model.cuda()
 model.eval()
 
-train_set = Dataset(opt.train_folder, validate_chromosomes)
-data_loader = data.DataLoader(train_set, batch_size=1, shuffle=False)
+for chromosome in validate_chromosomes:
+    train_set = Dataset(opt.train_folder, [chromosome])
+    data_loader = data.DataLoader(train_set, batch_size=1, shuffle=False)
 
-print("===> Validation")
-_i, _j = 0, 0
-output_data = np.zeros(train_set.shape)
-for iteration, batch in enumerate(data_loader, 1):
-    replaced, epi = Variable(batch[0]), Variable(batch[1])
+    print("===> Validation {}".format(chromosome))
+    _i, _j = 0, 0
+    output_data = np.zeros(train_set.shape)
+    for iteration, batch in enumerate(data_loader, 1):
+        replaced, epi = Variable(batch[0]), Variable(batch[1])
 
-    replaced, epi = replaced.cuda(), epi.cuda()
-    output = model(replaced.unsqueeze(1), epi.unsqueeze(1))
-    print(output.max().item())
-    output = output.detach().cpu().numpy()
+        replaced, epi = replaced.cuda(), epi.cuda()
+        output = model(replaced.unsqueeze(1), epi.unsqueeze(1))
+        output = output.detach().cpu().numpy()
 
-    output = output[0, 0]
-    output_data[_i, _j] = output
-    _j += 1
-    if _j >= train_set.shape[1]:
-        _j = 0
-        _i += 1
+        output = output[0, 0]
+        output_data[_i, _j] = output
+        _j += 1
+        if _j >= train_set.shape[1]:
+            _j = 0
+            _i += 1
 
-np.savez_compressed('{}/{}_1000b.npz'.format(opt.results, validate_chromosomes[0]), out=output_data)
+    np.savez_compressed('{}/{}_1000b.npz'.format(opt.results, chromosome), out=output_data)
 
