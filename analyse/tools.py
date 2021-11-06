@@ -1,5 +1,10 @@
 import os
+import sys
+import logging
 import numpy as np
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from train.dataset import hic_norm, get_Several_MinMax_Array
 
 def merge_matrix(matrixs):
     dim = matrixs.shape
@@ -12,40 +17,35 @@ def merge_matrix(matrixs):
         _r[:_y, :_x] = _merge[:_y, :_x]
     return result_map
 
-def get_Several_MinMax_Array(np_arr, several):
-    """
-    获取numpy数值中最大或最小的几个数
-    :param np_arr:  numpy数组
-    :param several: 最大或最小的个数（负数代表求最大，正数代表求最小）
-    :return:
-        several_min_or_max: 结果数组
-    """
-    if several > 0:
-        several_min_or_max = np_arr[np.argpartition(np_arr,several)[:several]]
-    else:
-        several_min_or_max = np_arr[np.argpartition(np_arr, several)[several:]]
-    return several_min_or_max
-
-def hic_norm(matrix):
-    nums = int((matrix != 0).sum() / 1000)
-    max_num = get_Several_MinMax_Array(matrix.reshape(-1), -nums)[0]
-    matrix[matrix>max_num] = max_num
-    matrix[matrix<=10] = matrix[matrix<=10] / 10 * np.log2(10)
-    matrix[matrix>10] = np.log2(matrix[matrix>10])
-
-    matrix = matrix / matrix.max() * 255
-    return matrix
-
 def clean_matrix(matrixs):
-    # Min = min(matrix1.shape[0], matrix2.shape[0])
-    # matrix1 = matrix1[:Min, :Min]
-    # matrix2 = matrix2[:Min, :Min]
     Min = matrixs[0].shape[0]
     for matrix in matrixs:
         Min = min(Min, matrix.shape[0])
     for matrix in matrixs:
         matrixs[0] = matrixs[0][:Min, :Min]
-
-    # _both = (matrix1 != 0) | (matrix2 != 0)
-    # return matrix1[_both], matrix2[_both], Min
     return matrixs, Min
+
+
+def get_logger(filename, verbosity=1, name=None):
+    level_dict = {0: logging.DEBUG, 1: logging.INFO, 2: logging.WARNING}
+    formatter = logging.Formatter(
+        "[%(asctime)s][%(filename)s][line:%(lineno)d][%(levelname)s] %(message)s"
+    )
+    logger = logging.getLogger(name)
+    logger.setLevel(level_dict[verbosity])
+
+    fh = logging.FileHandler(filename)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+
+    return logger
+
+
+def mkdir(out_dir):
+    if not os.path.isdir(out_dir):
+        print(f'Making directory: {out_dir}')
+    os.makedirs(out_dir, exist_ok=True)
