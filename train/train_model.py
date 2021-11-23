@@ -59,16 +59,17 @@ def reduce_tensor(tensor):
 
 
 def train(args):
-    data_path = args.input_folder
+    data_paths = args.input_folders
     out_dir_path = args.output_folder
     mkdir(out_dir_path)
+    data_paths = data_paths.split(',')
 
-    train_set = Dataset(data_path, train_chromosomes)
+    train_set = Dataset(data_paths, train_chromosomes)
     data_sampler = DistributedSampler(train_set)
     data_loader = torch.utils.data.DataLoader(
         train_set, batch_size=batch_size, shuffle=False, sampler=data_sampler)
 
-    test_set = Dataset(data_path, test_chromosomes)
+    test_set = Dataset(data_paths, test_chromosomes)
     test_data_sampler = DistributedSampler(test_set)
     test_data_loader = torch.utils.data.DataLoader(
         test_set, batch_size=1, shuffle=False, sampler=test_data_sampler)
@@ -96,7 +97,7 @@ def train(args):
     ]
     perceptual_loss = PerceptualLoss(layer_names, rescale=True).to(device)
 
-    logger = get_logger('exp.log')
+    logger = get_logger(os.path.join(out_dir_path, 'exp.log'))
     for epoch in range(0, 15000):
         running_loss = 0.0
         Net.train()
@@ -190,7 +191,7 @@ def save_checkpoint(model, epoch, out_dir_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train model')
     req_args = parser.add_argument_group('Required Arguments')
-    req_args.add_argument('-i', dest='input_folder', help='', required=True)
+    req_args.add_argument('-i', dest='input_folders', help='', required=True)
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
     req_args.add_argument('--local_rank', type=int, default=0)
 

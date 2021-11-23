@@ -55,11 +55,11 @@ class Dataset(data.Dataset):
 os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 parser = argparse.ArgumentParser(description="Evaluation Script")
-parser.add_argument("--train_folder", default="/data1/lmh_data/MMSR_complete/train",
+parser.add_argument("--train_folder", default="/data1/lmh_data/MINE/GM12878_ATAC_H3K27ac_H3K4me3/analyse/IMR90_ATAC_H3K27ac_H3K4me3/use_data",
                     type=str, help="The training data folder")
 parser.add_argument(
-    "--model", default="/data1/lmh_data/MMSR_complete/train/checkpoint/model_epoch_27.pth", type=str, help="model path")
-parser.add_argument("--results", default="/data1/lmh_data/MMSR_complete/validation",
+    "--model", default="/data1/lmh_data/MINE/GM12878_ATAC_H3K27ac_H3K4me3/checkpoint/model_epoch_27.pth", type=str, help="model path")
+parser.add_argument("--results", default="/data1/lmh_data/MINE/GM12878_ATAC_H3K27ac_H3K4me3/analyse/IMR90_ATAC_H3K27ac_H3K4me3/validation",
                     type=str, help="Result save location")
 
 validate_chromosomes = ['chr{}'.format(i) for i in range(1, 23)]

@@ -1,4 +1,3 @@
 */__pycache__/
 
-*.log
-*/input_show*
+train/exp.log

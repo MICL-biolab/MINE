@@ -40,67 +40,58 @@ def get_matrix(data_path, dir_name, chromosome, partition):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, data_path, chromosomes, is_validate=False):
+    def __init__(self, data_paths, chromosomes):
         super(Dataset, self).__init__()
 
         self.train_datasets = []
-        for chromosome in chromosomes:
-            hr_matrix = get_matrix(data_path, 'hr', chromosome, 'hic')
-            replaced_matrix = get_matrix(
-                data_path, 'replaced', chromosome, 'hic')
-            epi_matrix = get_matrix(data_path, 'epi', chromosome, 'epi')
-            annotation_matrix = get_matrix(data_path, 'annotation', chromosome, 'hic')
-            old_train_matrixs = [hr_matrix, replaced_matrix, epi_matrix, annotation_matrix]
+        for data_path in data_paths:
+            for chromosome in chromosomes:
+                hr_matrix = get_matrix(data_path, 'hr', chromosome, 'hic')
+                replaced_matrix = get_matrix(
+                    data_path, 'replaced', chromosome, 'hic')
+                epi_matrix = get_matrix(data_path, 'epi', chromosome, 'epi')
+                annotation_matrix = get_matrix(data_path, 'annotation', chromosome, 'hic')
+                old_train_matrixs = [hr_matrix, replaced_matrix, epi_matrix, annotation_matrix]
 
-            # if not is_validate:
-            #     for i in range(len(old_train_matrixs)):
-            #         old_train_matrixs[i] = old_train_matrixs[i][:, 0, np.newaxis]
-                # hr_matrix = hr_matrix[:, 0:2]
-                # replaced_matrix = replaced_matrix[:, 0:2]
-                # epi_matrix = epi_matrix[:, 0:2]
+                # 清理全为0的矩阵
+                old_shape = old_train_matrixs[0].shape
+                train_matrixs = [[], [], [], []]
+                for i in range(old_shape[0]):
+                    for j in range(old_shape[1]):
+                        # 如果子矩阵全为0
+                        if i >= old_train_matrixs[3].shape[0] or j >= old_train_matrixs[3].shape[1]:
+                            continue
+                        if (not np.any(old_train_matrixs[0][i, j])) or (old_train_matrixs[3][i, j]==0).all():
+                            continue
+                        tmp_matrix = old_train_matrixs[0][i, j][old_train_matrixs[3][i, j]!=0]
+                        if (tmp_matrix==0).all():
+                            continue
+                        if (np.count_nonzero(tmp_matrix) / tmp_matrix.size) < 0.1:
+                            continue
+                        for k in range(len(train_matrixs)):
+                            train_matrixs[k].append(old_train_matrixs[k][i, j])
+                for i in range(len(train_matrixs)):
+                    train_matrixs[i] = np.array(train_matrixs[i]).reshape((-1, old_shape[2], old_shape[3]))
 
-            # 清理全为0的矩阵
-            old_shape = old_train_matrixs[0].shape
-            train_matrixs = [[], [], [], []]
-            for i in range(old_shape[0]):
-                for j in range(old_shape[1]):
-                    # 如果子矩阵全为0
-                    if (not np.any(old_train_matrixs[0][i, j])) or (old_train_matrixs[3][i, j]==0).all():
-                        continue
-                    tmp_matrix = old_train_matrixs[0][i, j][old_train_matrixs[3][i, j]!=0]
-                    if (tmp_matrix==0).all():
-                        continue
-                    if (np.count_nonzero(tmp_matrix) / tmp_matrix.size) < 0.1:
-                        continue
-                    for k in range(len(train_matrixs)):
-                        train_matrixs[k].append(old_train_matrixs[k][i, j])
-            for i in range(len(train_matrixs)):
-                train_matrixs[i] = np.array(train_matrixs[i]).reshape((-1, old_shape[2], old_shape[3]))
+                self.shape = train_matrixs[0].shape
+                for i in range(1, len(train_matrixs)):
+                    _y = max(self.shape[0] - train_matrixs[i].shape[0], 0)
+                    train_matrixs[i] = np.pad(
+                        train_matrixs[i],
+                        ((0, _y), (0, 0), (0, 0)),
+                        'constant', constant_values=(0, 0)
+                    )
+                    train_matrixs[i] = train_matrixs[i][:self.shape[0]]
 
-            self.shape = train_matrixs[0].shape
-            for i in range(1, len(train_matrixs)):
-                _y = max(self.shape[0] - train_matrixs[i].shape[0], 0)
-                train_matrixs[i] = np.pad(
-                    train_matrixs[i],
-                    ((0, _y), (0, 0), (0, 0)),
-                    'constant', constant_values=(0, 0)
-                )
-                train_matrixs[i] = train_matrixs[i][:self.shape[0]]
+                for i in range(len(train_matrixs) - 1):
+                    train_matrixs[i] = hic_norm(train_matrixs[i])
 
-            for i in range(len(train_matrixs) - 1):
-                train_matrixs[i] = hic_norm(train_matrixs[i])
-
-            # np.save('input_show/hr_input', train_matrixs[0])
-            # np.save('input_show/replaced_input', train_matrixs[1])
-            # np.save('input_show/epi_input', train_matrixs[2])
-            # np.save('input_show/annotation_input', train_matrixs[3])
-
-            train_datasets = train_matrixs
-            if not self.train_datasets:
-                self.train_datasets = train_datasets
-            else:
-                for i in range(len(train_datasets)):
-                    self.train_datasets[i] = np.concatenate((self.train_datasets[i], train_datasets[i]))
+                train_datasets = train_matrixs
+                if not self.train_datasets:
+                    self.train_datasets = train_datasets
+                else:
+                    for i in range(len(train_datasets)):
+                        self.train_datasets[i] = np.concatenate((self.train_datasets[i], train_datasets[i]))
 
         for i in range(len(self.train_datasets)):
             self.train_datasets[i] = torch.tensor(self.train_datasets[i])

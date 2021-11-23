@@ -27,6 +27,11 @@ python analysis_epi.py -i /path/to/bigWig -o /folder/to/epi -r 1000
 ```
 python epi_concat.py -i /folder/to/epis -o /folder/to/train/epi -r 1000 -s 400 -f 2000
 ```
+### Annotation
+1. .bigBed -> .npz
+```
+python generate_train_annotation_data.py -i /path/to/bigBed -o /folder/to/train/annotation
+```
 ## Train
 1. train
 ```
