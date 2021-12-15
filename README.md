@@ -28,14 +28,18 @@ python analysis_epi.py -i /path/to/bigWig -o /folder/to/epi -r 1000
 python epi_concat.py -i /folder/to/epis -o /folder/to/train/epi -r 1000 -s 400 -f 2000
 ```
 ### Annotation
-1. .bigBed -> .npz
+.bigBed -> .npz
 ```
 python generate_train_annotation_data.py -i /path/to/bigBed -o /folder/to/train/annotation
+```
+or peaks -> .npz
+```
+python generate_train_annotation_data_by_peaks.py -i /path/to/bigBed -o /folder/to/train/annotation
 ```
 ## Train
 1. train
 ```
-python train_model.py -i /folder/to/train -o /folder/to/checkpoint
+CUDA_VISIBLE_DEVICES=1,2,3,4,5,6 python -m torch.distributed.launch --nproc_per_node=6 train_model.py -i /folder/to/train -o /folder/to/checkpoint
 ```
 2. validate
 ```
