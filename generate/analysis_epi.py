@@ -25,7 +25,10 @@ def main(args):
         print(chrom)
         peaks = np.zeros(int(bw.chroms(chrom)/step_length))
         write_start, length, sum_pos = 0, 0, 0
-        for entry in bw.intervals(chrom):
+        entries = bw.intervals(chrom)
+        if entries is None:
+            continue
+        for entry in entries:
             start, end, pos = entry
             old_length = length
             length += end - start
