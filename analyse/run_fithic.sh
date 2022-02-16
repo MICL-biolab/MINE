@@ -1,4 +1,4 @@
-folder_path=''
+folder_path='/data1/lmh_data/MINE/GM12878_H3K9me3_H3K27me3/analyse/HeLa_H3K9me3_H3K27me3/experiment/loop/enhanced/'
 for ((i=1; i<=22; i++))
 do
         cd $folder_path'chr'$i'_1000b'
