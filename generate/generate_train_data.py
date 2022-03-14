@@ -120,7 +120,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate train data')
+    parser = argparse.ArgumentParser(description='Generate hic train data')
     req_args = parser.add_argument_group('Required Arguments')
     req_args.add_argument('-i', dest='input_folder', help='', required=True)
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
@@ -130,7 +130,7 @@ if __name__ == '__main__':
                            help='The size of the captured image[default:400]',
                            default=400)
     misc_args.add_argument('-f', dest='focus_size', type=int,
-                           help='The size of the picture to follow[default:400]',
+                           help='The size of the picture to follow[default:2000]',
                            default=2000)
     
     args = parser.parse_args(sys.argv[1:])

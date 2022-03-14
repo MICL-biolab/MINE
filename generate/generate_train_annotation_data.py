@@ -56,7 +56,7 @@ if __name__ == '__main__':
                            help='The size of the captured image[default:400]',
                            default=400)
     misc_args.add_argument('-f', dest='focus_size', type=int,
-                           help='The size of the picture to follow[default:400]',
+                           help='The size of the picture to follow[default:2000]',
                            default=2000)
     
     args = parser.parse_args(sys.argv[1:])
