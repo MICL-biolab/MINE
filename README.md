@@ -1,4 +1,8 @@
-# USE
+# MINE-Loop
+## Get the code
+```
+git clone git@github.com:MICL-biolab/MINE.git --depth=1
+```
 ## Prepare the environment
 1. Need to prepare juicer_tools and cuda10.1 environment in advance
 2. conda create -n MINE python=3.6
@@ -45,6 +49,9 @@ CUDA_VISIBLE_DEVICES=1,2,3,4,5,6 python -m torch.distributed.launch --nproc_per_
 ```
 python validate.py --train_folder /folder/to/train --model /path/to/model --results /folder/to/result
 ```
-# Predict & Analyse
+## Predict & Analyse
 1. We trained a model and put it in the data folder, you can use the validate.py in the data folder to predict the data
-2. The analysis processing steps and results are in the analyse folder
+2. The result of model prediction is analyzed by Jupyter under the folder of analyze/fig2 & analyze/fig3
+# MINE-Density & MINE-Viewer
+1. The MINE-Density calculation is under the folder MINE_Density, and we provide two levels of calculation for TAD and compartment
+2. After the first step, we also provide analysis of the density and 3D structure in the analyze/fig4 and analyze/fig5 folders
