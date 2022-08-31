@@ -12,7 +12,7 @@ git clone git@github.com:MICL-biolab/MINE.git --depth=1
 ### Hi-C
 1. .hic -> .txt(by juicer)
 ```
-java -jar /path/to/juicer_tools.jar dump observed VC /path/to/hic int int BP 1000 /path/to/txt
+bash hic2txt.sh <juicer_tools_path> <hic_path> /folder/to/txt
 ```
 2. .txt -> .npz
 ```

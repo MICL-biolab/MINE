@@ -1,17 +1,21 @@
+from cmath import isnan
 import os
 import sys
 import argparse
 import logging
+
+import numpy as np
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
 import torch.nn as nn
-from torchelie.loss import PerceptualLoss
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
+from torchelie.loss import PerceptualLoss
+
 from dataset import Dataset
 import my_net as UNet
-dist.init_process_group(backend='nccl')
+dist.init_process_group(backend='gloo')
 
 # 配置每个进程的gpu
 local_rank = dist.get_rank()  # 也可以通过设置args.local_rank得到（见下文）
@@ -40,6 +44,7 @@ def get_logger(filename, verbosity=1, name=None):
 
 batch_size = 8
 lr = 0.0001
+cal_accuracy = False
 
 train_chromosomes = ['chr{}'.format(i) for i in range(1, 18)]
 test_chromosomes = ['chr{}'.format(i) for i in range(18, 23)]
@@ -98,8 +103,8 @@ def train(args):
     perceptual_loss = PerceptualLoss(layer_names, rescale=True).to(device)
 
     logger = get_logger(os.path.join(out_dir_path, 'exp.log'))
-    for epoch in range(0, 15000):
-        running_loss = 0.0
+    for epoch in range(0, 50):
+        running_loss, running_acc = 0.0, 0.0
         Net.train()
         output_max = 0.0
         if local_rank != -1:
@@ -134,9 +139,18 @@ def train(args):
             loss2 = reduce_tensor(loss2.clone())
 
             running_loss += loss1.item() + loss2.item()
-            # running_loss += loss2.item()
+            if cal_accuracy:
+                _running_acc, nums = 0.0, 0
+                _output, _target = _output.cpu().numpy(), _target.cpu().numpy()
+                for i in range(_output.shape[0]):
+                    if _output[i, 0].max() == 0 or _target[i, 0].max() == 0:
+                        continue
+                    _running_acc += np.corrcoef(_output[i, 0].reshape(-1), _target[i, 0].reshape(-1))[0, 1]
+                    nums += 1
+                if nums != 0:
+                    running_acc += _running_acc/nums
+
             if iteration % 10 == 0 and local_rank == 0:
-                # print(str(loss1) + " " + str(loss2))
                 log_str = "===> Epoch[{}]({}/{}): Loss: {:.10f}".format(
                     epoch, iteration, len(data_loader), running_loss/iteration)
                 print(log_str)
@@ -145,7 +159,7 @@ def train(args):
         if local_rank == 0:
             logger.info(str(output_max))
         # 测试
-        test_loss = 0.0
+        test_loss, test_acc = 0.0, 0.0
         Net.eval()
         for iteration, batch in enumerate(test_data_loader, 1):
             replaced = Variable(batch[0]).to(device).unsqueeze(1)
@@ -168,11 +182,25 @@ def train(args):
             loss2 = reduce_tensor(loss2.clone())
 
             test_loss += loss1.item() + loss2.item()
+            if cal_accuracy:
+                _test_acc, nums = 0.0, 0
+                _output, _target = _output.cpu().numpy(), _target.cpu().numpy()
+                for i in range(_output.shape[0]):
+                    if _output[i, 0].max() == 0 or _target[i, 0].max() == 0:
+                        continue
+                    _test_acc += np.corrcoef(_output[i, 0].reshape(-1), _target[i, 0].reshape(-1))[0, 1]
+                    nums += 1
+                if nums != 0:
+                    test_acc += _test_acc/nums
 
         if local_rank == 0:
             log_str = "===> Epoch[{}]:\ttrain_loss: {:.10f}\ttest_loss: {:.10f}".format(
-                epoch, running_loss/len(data_loader), test_loss / len(test_data_loader))
+                epoch, running_loss/len(data_loader), test_loss/len(test_data_loader))
             logger.info(log_str)
+            if cal_accuracy:
+                log_str = "===> Epoch[{}]:\ttrain_acc: {:.10f}\ttest_acc: {:.10f}".format(
+                    epoch, running_acc/len(data_loader), test_acc/len(test_data_loader))
+                logger.info(log_str)
 
             save_checkpoint(Net, epoch, out_dir_path)
         dist.barrier()
