@@ -4,7 +4,7 @@ import gzip
 import argparse
 import numpy as np
 import numba as nb
-from tools import merge_matrix, mkdir, get_Several_MinMax_Array
+from loop_caller_script.tools import merge_matrix, mkdir, get_Several_MinMax_Array
 
 @nb.jit
 def calculate_fragments(chrom, resolution, matrix, fragments):
@@ -80,7 +80,7 @@ def main(args):
         #     file_object.writelines(interactions)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='用于生成fithic输入文件的脚本')
+    parser = argparse.ArgumentParser(description='The script used to generate the fithic(or mustache) input file')
     req_args = parser.add_argument_group('Required Arguments')
     req_args.add_argument('-i', dest='input_folder', help='', required=True)
     req_args.add_argument('-o', dest='output_folder', help='', required=True)
