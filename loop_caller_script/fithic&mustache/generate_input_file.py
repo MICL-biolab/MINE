@@ -4,6 +4,8 @@ import gzip
 import argparse
 import numpy as np
 import numba as nb
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 from loop_caller_script.tools import merge_matrix, mkdir, get_Several_MinMax_Array
 
 @nb.jit

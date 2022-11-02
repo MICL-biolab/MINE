@@ -55,3 +55,5 @@ python validate.py --train_folder /folder/to/train --model /path/to/model --resu
 # MINE-Density & MINE-Viewer
 1. The MINE-Density calculation is under the folder MINE_Density, and we provide two levels of calculation for TAD and compartment
 2. After the first step, we also provide analysis of the density and 3D structure in the analyze/fig4 and analyze/fig5 folders
+# [`FullTutorial.pdf`](FullTutorial.pdf)
+We have listed the detailed usage process for our work (from the raw data to the final analysis results)
