@@ -1,7 +1,7 @@
 # MINE-Loop
 ## Get the code
 ```
-git clone git@github.com:MICL-biolab/MINE.git --depth=1
+git clone https://github.com/MICL-biolab/MINE.git --depth=1
 ```
 ## Prepare the environment
 1. Need to prepare juicer_tools and cuda10.1 environment in advance
